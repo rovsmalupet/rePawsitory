@@ -1,5 +1,5 @@
 import React from 'react';
-import { PlusCircle, Heart, FileText, Users, Bell } from 'lucide-react';
+import { Heart, FileText, Users, Bell } from 'lucide-react';
 
 const DashboardPage = ({ userRole, pets, recentRecords, petsLoading, petsError }) => {
   return (
@@ -8,12 +8,6 @@ const DashboardPage = ({ userRole, pets, recentRecords, petsLoading, petsError }
         <h1 className="text-3xl font-bold text-gray-800">
           {userRole === 'owner' ? 'Pet Owner Dashboard' : 'Veterinarian Dashboard'}
         </h1>
-        {userRole === 'owner' && (
-          <button className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-            <PlusCircle size={20} />
-            Add New Pet
-          </button>
-        )}
       </div>
 
       {/* Stats Cards */}

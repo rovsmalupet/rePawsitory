@@ -14,7 +14,7 @@ const Sidebar = ({
     <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-blue-800 to-blue-900 text-white transition-all duration-300 flex flex-col`}>
       {/* Logo */}
       <div className="p-4 flex items-center justify-between border-b border-blue-700">
-        {sidebarOpen && <h1 className="text-xl font-bold">🐾 PetHealth</h1>}
+        {sidebarOpen && <h1 className="text-xl font-bold">🐾 PetHealths</h1>}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="p-2 hover:bg-blue-700 rounded-lg transition-colors"

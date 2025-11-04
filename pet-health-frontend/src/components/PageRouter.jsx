@@ -8,7 +8,7 @@ import SettingsPage from '../pages/SettingsPage';
 const PageRouter = ({ currentPage, userRole, pets, recentRecords, petsLoading, petsError, addPet }) => {
   switch (currentPage) {
     case 'dashboard':
-      return <DashboardPage userRole={userRole} pets={pets} recentRecords={recentRecords} petsLoading={petsLoading} petsError={petsError} />;
+      return <DashboardPage userRole={userRole} pets={pets} recentRecords={recentRecords} petsLoading={petsLoading} petsError={petsError} addPet={addPet} />;
     case 'pets':
     case 'patients':
       return <PetsPage pets={pets} petsLoading={petsLoading} petsError={petsError} addPet={addPet} />;
@@ -19,7 +19,7 @@ const PageRouter = ({ currentPage, userRole, pets, recentRecords, petsLoading, p
     case 'settings':
       return <SettingsPage />;
     default:
-      return <DashboardPage userRole={userRole} pets={pets} recentRecords={recentRecords} petsLoading={petsLoading} petsError={petsError} />;
+      return <DashboardPage userRole={userRole} pets={pets} recentRecords={recentRecords} petsLoading={petsLoading} petsError={petsError} addPet={addPet} />;
   }
 };
 

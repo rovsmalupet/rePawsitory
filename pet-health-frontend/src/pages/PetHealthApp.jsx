@@ -33,6 +33,7 @@ const PetHealthApp = () => {
             petsLoading={loading}
             petsError={error}
             addPet={addPet}
+            setCurrentPage={navigation.setCurrentPage}
           />
         </Layout>
       )}
