@@ -4,6 +4,7 @@ import PageRouter from '../components/PageRouter';
 import { useNavigation } from '../hooks/useNavigation';
 import { useMockData } from '../hooks/useMockData';
 import { usePets } from '../hooks/usePets';
+import { usePatients } from '../hooks/usePatients';
 import LoginPage from './LoginPage';
 import SignupPage from './SignupPage';
 
@@ -12,6 +13,7 @@ const PetHealthApp = () => {
   const [authView, setAuthView] = useState('login'); // 'login' | 'signup'
   const { recentRecords } = useMockData();
   const { pets, loading, error, addPet } = usePets();
+  const { patients, loading: patientsLoading, error: patientsError } = usePatients();
 
   return (
     <>
@@ -45,6 +47,9 @@ const PetHealthApp = () => {
             petsLoading={loading}
             petsError={error}
             addPet={addPet}
+            patients={patients}
+            patientsLoading={patientsLoading}
+            patientsError={patientsError}
           />
         </Layout>
       )}
