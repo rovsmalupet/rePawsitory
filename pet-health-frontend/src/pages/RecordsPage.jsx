@@ -1,15 +1,11 @@
 import React from 'react';
-import { PlusCircle, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
 
 const RecordsPage = ({ recentRecords }) => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-800">Medical Records</h1>
-        <button className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-          <PlusCircle size={20} />
-          Add Record
-        </button>
       </div>
 
       <div className="bg-white rounded-xl shadow-md p-6">

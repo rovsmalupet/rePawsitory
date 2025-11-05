@@ -1,12 +1,15 @@
 // server/server.js
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 const app = express();
 const mongoose = require('mongoose');
 const { User, Pet, MedicalRecord, PetAccess } = require('./models');
 const { connectToDatabase } = require('./db');
 const authRoutes = require('./routes/auth');
 const { auth, checkRole } = require('./middleware/auth');
+const upload = require('./config/multer');
+const uploadMedicalRecord = require('./config/multerMedicalRecords');
 
 // CORS configuration
 app.use(cors({
@@ -16,6 +19,9 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Use authentication routes
 app.use('/api', authRoutes);
@@ -43,9 +49,55 @@ app.get('/api/vet-only', auth, checkRole(['veterinarian']), (req, res) => {
   res.json({ message: 'Welcome, veterinarian!' });
 });
 
+// Medical record file upload endpoint (supports multiple files)
+app.post('/api/upload/medical-record', auth, uploadMedicalRecord.array('files', 5), (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'At least one file is required' });
+    }
+
+    // Return the URLs for all uploaded files
+    const uploadedFiles = req.files.map(file => ({
+      filename: file.filename,
+      fileUrl: `/uploads/medical-records/${file.filename}`,
+      fileType: file.mimetype
+    }));
+
+    res.json({ 
+      message: 'Files uploaded successfully',
+      files: uploadedFiles
+    });
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ error: 'Failed to upload files' });
+  }
+});
+
+// Image upload endpoint for pets
+app.post('/api/upload/pet-image', auth, upload.single('image'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Return the URL path to the uploaded image
+    const imageUrl = `/uploads/pets/${req.file.filename}`;
+    res.json({ 
+      message: 'Image uploaded successfully',
+      imageUrl: imageUrl,
+      filename: req.file.filename
+    });
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ error: 'Failed to upload image' });
+  }
+});
+
 // Get patients for veterinarian
 app.get('/api/vet/patients', auth, checkRole(['veterinarian']), async (req, res) => {
   try {
+    console.log('Fetching patients for vet:', req.user._id);
+    
     // Find all pets this vet has access to
     const petAccesses = await PetAccess.find({
       veterinarian: req.user._id,
@@ -55,6 +107,13 @@ app.get('/api/vet/patients', auth, checkRole(['veterinarian']), async (req, res)
       populate: {
         path: 'owner',
         select: 'name email'
+      }
+    });
+
+    console.log('Found pet accesses:', petAccesses.length);
+    petAccesses.forEach(access => {
+      if (access.pet) {
+        console.log('- Pet:', access.pet.name, '(ID:', access.pet._id + ')');
       }
     });
 

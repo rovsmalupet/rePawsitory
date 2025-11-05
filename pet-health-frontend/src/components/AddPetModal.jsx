@@ -67,7 +67,7 @@ const AddPetModal = ({ isOpen, onClose, onSave }) => {
         formData.append('image', file);
 
         const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:5000/api/upload/pet-image', {
+        const response = await fetch('http://localhost:5001/api/upload/pet-image', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`

@@ -61,13 +61,25 @@ const medicalRecordSchema = new mongoose.Schema({
     required: true
   },
   notes: String,
-  // File attachments
-  attachments: [{
-    filename: String,
-    fileUrl: String,
-    fileType: String,
-    uploadDate: { type: Date, default: Date.now }
-  }],
+  // File attachments (at least one required)
+  attachments: {
+    type: [{
+      filename: { type: String, required: true },
+      fileUrl: { type: String, required: true },
+      fileType: { 
+        type: String, 
+        enum: ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'],
+        required: true 
+      },
+      uploadDate: { type: Date, default: Date.now }
+    }],
+    validate: {
+      validator: function(attachments) {
+        return attachments && attachments.length > 0;
+      },
+      message: 'At least one file attachment (PDF or image) is required'
+    }
+  },
   // Cost tracking
   cost: {
     amount: Number,

@@ -10,7 +10,7 @@ const JWT_SECRET = 'your-secret-key';
 // Register endpoint
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, clinic, license, specialization } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -18,13 +18,31 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Email already registered' });
     }
 
-    // Create new user
-    const user = new User({
+    // Validate vet-specific fields if role is veterinarian
+    if (role === 'veterinarian') {
+      if (!clinic || !license || !specialization) {
+        return res.status(400).json({ 
+          error: 'Veterinarians must provide clinic, license, and specialization' 
+        });
+      }
+    }
+
+    // Create new user with role-specific fields
+    const userData = {
       name,
       email,
       password, // Will be hashed by the pre-save middleware
       role: role || 'pet_owner'
-    });
+    };
+
+    // Add vet-specific fields if role is veterinarian
+    if (role === 'veterinarian') {
+      userData.clinic = clinic;
+      userData.license = license;
+      userData.specialization = specialization;
+    }
+
+    const user = new User(userData);
 
     // Save user
     await user.save();

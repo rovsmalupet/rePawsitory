@@ -36,11 +36,12 @@ const auth = async (req, res, next) => {
 // Middleware to check role
 const checkRole = (roles) => {
     return (req, res, next) => {
+        console.log('Checking role. User role:', req.user.role, 'Required roles:', roles);
         if (!roles.includes(req.user.role)) {
-            return res.status(403).json({ error: 'Access denied' });
+            return res.status(403).json({ error: 'Access denied', userRole: req.user.role, requiredRoles: roles });
         }
         next();
     };
 };
 
-module.exports = { auth, checkRole };
+module.exports = { auth, checkRole };module.exports = { auth, checkRole };

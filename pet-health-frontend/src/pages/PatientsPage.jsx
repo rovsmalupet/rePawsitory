@@ -74,9 +74,9 @@ const PatientsPage = ({ patients, patientsLoading, patientsError }) => {
           {filteredPatients.map(patient => (
             <div key={patient._id} className="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow overflow-hidden cursor-pointer">
               <div className="bg-gradient-to-br from-green-400 to-green-600 h-32 flex items-center justify-center overflow-hidden">
-                {patient.photoUrl && patient.photoUrl.startsWith('http') ? (
+                {patient.photoUrl ? (
                   <img 
-                    src={patient.photoUrl} 
+                    src={`http://localhost:5001${patient.photoUrl}`}
                     alt={patient.name} 
                     className="w-full h-full object-cover"
                   />

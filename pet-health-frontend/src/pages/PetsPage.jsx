@@ -78,7 +78,7 @@ const PetsPage = ({ pets, petsLoading, petsError, addPet }) => {
             <div className="bg-gradient-to-br from-blue-400 to-blue-600 h-32 flex items-center justify-center overflow-hidden relative">
               {pet.photoUrl ? (
                 <img 
-                  src={`http://localhost:5000${pet.photoUrl}`}
+                  src={`http://localhost:5001${pet.photoUrl}`}
                   alt={pet.name} 
                   className="w-full h-full object-cover"
                 />
