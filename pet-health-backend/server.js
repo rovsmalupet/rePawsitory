@@ -36,11 +36,58 @@ app.get('/api/profile', auth, async (req, res) => {
         id: req.user._id,
         name: req.user.name,
         email: req.user.email,
-        role: req.user.role
+        role: req.user.role,
+        phone: req.user.phone,
+        address: req.user.address,
+        clinic: req.user.clinic,
+        license: req.user.license,
+        specialization: req.user.specialization
       }
     });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update profile endpoint
+app.put('/api/profile/update', auth, async (req, res) => {
+  try {
+    const { name, phone, address, clinic, license, specialization } = req.body;
+    
+    // Update user data
+    const updateData = {
+      name,
+      phone,
+      address
+    };
+
+    // Add vet-specific fields if user is a veterinarian
+    if (req.user.role === 'veterinarian') {
+      if (clinic) updateData.clinic = clinic;
+      if (license) updateData.license = license;
+      if (specialization) updateData.specialization = specialization;
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user._id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: {
+        id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        phone: updatedUser.phone,
+        address: updatedUser.address
+      }
+    });
+  } catch (error) {
+    console.error('Profile update error:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
   }
 });
 
@@ -230,8 +277,6 @@ app.delete('/api/medical-records/:id', auth, async (req, res) => {
 // Get patients for veterinarian
 app.get('/api/vet/patients', auth, checkRole(['veterinarian']), async (req, res) => {
   try {
-    console.log('Fetching patients for vet:', req.user._id);
-    
     // Find all pets this vet has access to
     const petAccesses = await PetAccess.find({
       veterinarian: req.user._id,
@@ -241,13 +286,6 @@ app.get('/api/vet/patients', auth, checkRole(['veterinarian']), async (req, res)
       populate: {
         path: 'owner',
         select: 'name email'
-      }
-    });
-
-    console.log('Found pet accesses:', petAccesses.length);
-    petAccesses.forEach(access => {
-      if (access.pet) {
-        console.log('- Pet:', access.pet.name, '(ID:', access.pet._id + ')');
       }
     });
 
@@ -297,14 +335,138 @@ app.get('/api/vets', auth, async (req, res) => {
   }
 });
 
+// Grant veterinarian access to a pet (pet owner grants access)
+app.post('/api/pet-access/grant', auth, async (req, res) => {
+  try {
+    const { petId, veterinarianId, accessLevel, permissions } = req.body;
+
+    // Verify the pet exists and belongs to the requesting user
+    const pet = await Pet.findById(petId);
+    if (!pet) {
+      return res.status(404).json({ error: 'Pet not found' });
+    }
+
+    if (pet.owner.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'You can only grant access to your own pets' });
+    }
+
+    // Verify the veterinarian exists and has the correct role
+    const veterinarian = await User.findById(veterinarianId);
+    if (!veterinarian) {
+      return res.status(404).json({ error: 'Veterinarian not found' });
+    }
+
+    if (veterinarian.role !== 'veterinarian') {
+      return res.status(400).json({ error: 'User is not a veterinarian' });
+    }
+
+    // Check if access already exists
+    const existingAccess = await PetAccess.findOne({
+      pet: petId,
+      veterinarian: veterinarianId,
+      isRevoked: false
+    });
+
+    if (existingAccess) {
+      return res.status(400).json({ error: 'Access already granted to this veterinarian' });
+    }
+
+    // Create new pet access
+    const petAccess = new PetAccess({
+      pet: petId,
+      veterinarian: veterinarianId,
+      grantedBy: req.user._id,
+      accessLevel: accessLevel || 'read',
+      permissions: permissions || {
+        viewMedicalRecords: true,
+        addMedicalRecords: false,
+        editPetInfo: false,
+        viewOwnerInfo: true
+      }
+    });
+
+    await petAccess.save();
+
+    res.status(201).json({
+      message: 'Access granted successfully',
+      petAccess
+    });
+
+  } catch (error) {
+    console.error('Error granting pet access:', error);
+    res.status(500).json({ error: 'Failed to grant access' });
+  }
+});
+
+// Get all access grants made by the current user (pet owner)
+app.get('/api/pet-access/my-grants', auth, async (req, res) => {
+  try {
+    const grants = await PetAccess.find({
+      grantedBy: req.user._id,
+      isRevoked: false
+    })
+      .populate('veterinarian', 'name email clinic specialization')
+      .populate('pet', 'name species breed')
+      .lean();
+
+    // Group by veterinarian
+    const groupedGrants = grants.reduce((acc, grant) => {
+      const vetId = grant.veterinarian._id.toString();
+      if (!acc[vetId]) {
+        acc[vetId] = {
+          _id: grant._id,
+          veterinarian: grant.veterinarian,
+          pets: [],
+          grantedAt: grant.grantedAt
+        };
+      }
+      acc[vetId].pets.push(grant.pet);
+      return acc;
+    }, {});
+
+    res.json(Object.values(groupedGrants));
+  } catch (error) {
+    console.error('Error fetching grants:', error);
+    res.status(500).json({ error: 'Failed to fetch access grants' });
+  }
+});
+
+// Revoke veterinarian access
+app.put('/api/pet-access/revoke/:accessId', auth, async (req, res) => {
+  try {
+    const { accessId } = req.params;
+
+    const access = await PetAccess.findById(accessId);
+    if (!access) {
+      return res.status(404).json({ error: 'Access record not found' });
+    }
+
+    // Verify the user is the one who granted access
+    if (access.grantedBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'You can only revoke access you granted' });
+    }
+
+    access.isRevoked = true;
+    access.revokedAt = new Date();
+    access.revokedBy = req.user._id;
+    await access.save();
+
+    res.json({ message: 'Access revoked successfully' });
+  } catch (error) {
+    console.error('Error revoking access:', error);
+    res.status(500).json({ error: 'Failed to revoke access' });
+  }
+});
+
 // Connect to MongoDB
 connectToDatabase();
 
   
 // Endpoint to send data to frontend
-app.get("/pets", async (req, res) => {
+app.get("/pets", auth, async (req, res) => {
   try {
-    const pets = await Pet.find().lean();
+    // Get pets for the authenticated user
+    const pets = await Pet.find({ owner: req.user._id }).lean();
     return res.json(pets);
   } catch (err) {
     console.error('Error fetching pets:', err);
@@ -313,27 +475,58 @@ app.get("/pets", async (req, res) => {
 });
 
 // Endpoint to add a new pet
-app.post("/pets", async (req, res) => {
+app.post("/pets", auth, async (req, res) => {
   try {
-    const { name, species, breed, age, photo } = req.body || {};
+    const { 
+      name, 
+      species, 
+      breed, 
+      dateOfBirth, 
+      gender, 
+      weight, 
+      color, 
+      microchipId, 
+      photoUrl, 
+      allergies, 
+      chronicConditions, 
+      emergencyContact 
+    } = req.body;
 
+    // Validate required fields
     if (!name || !species) {
-      return res.status(400).json({ error: "'name' and 'species' are required" });
+      return res.status(400).json({ error: 'Name and species are required' });
     }
 
+    if (!dateOfBirth) {
+      return res.status(400).json({ error: 'Date of birth is required' });
+    }
+
+    if (!gender) {
+      return res.status(400).json({ error: 'Gender is required' });
+    }
+
+    // Create new pet with owner
     const pet = new Pet({
-      name,
-      species,
-      breed: breed || "",
-      age: typeof age === "number" ? age : Number(age) || 0,
-      photo: photo || "",
+      owner: req.user._id,
+      name: name.trim(),
+      species: species.trim(),
+      breed: breed ? breed.trim() : '',
+      dateOfBirth: new Date(dateOfBirth),
+      gender,
+      weight: weight || undefined,
+      color: color ? color.trim() : '',
+      microchipId: microchipId ? microchipId.trim() : '',
+      photoUrl: photoUrl || '',
+      allergies: allergies || [],
+      chronicConditions: chronicConditions || [],
+      emergencyContact: emergencyContact || undefined
     });
 
     const saved = await pet.save();
     return res.status(201).json(saved);
   } catch (err) {
     console.error('Error creating pet:', err);
-    return res.status(500).json({ error: 'Failed to create pet' });
+    return res.status(500).json({ error: err.message || 'Failed to create pet' });
   }
 });
 
