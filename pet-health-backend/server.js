@@ -264,6 +264,66 @@ app.post('/api/pet-access/grant', auth, async (req, res) => {
   }
 });
 
+// Get all access grants made by the current user (pet owner)
+app.get('/api/pet-access/my-grants', auth, async (req, res) => {
+  try {
+    const grants = await PetAccess.find({
+      grantedBy: req.user._id,
+      isRevoked: false
+    })
+      .populate('veterinarian', 'name email clinic specialization')
+      .populate('pet', 'name species breed')
+      .lean();
+
+    // Group by veterinarian
+    const groupedGrants = grants.reduce((acc, grant) => {
+      const vetId = grant.veterinarian._id.toString();
+      if (!acc[vetId]) {
+        acc[vetId] = {
+          _id: grant._id,
+          veterinarian: grant.veterinarian,
+          pets: [],
+          grantedAt: grant.grantedAt
+        };
+      }
+      acc[vetId].pets.push(grant.pet);
+      return acc;
+    }, {});
+
+    res.json(Object.values(groupedGrants));
+  } catch (error) {
+    console.error('Error fetching grants:', error);
+    res.status(500).json({ error: 'Failed to fetch access grants' });
+  }
+});
+
+// Revoke veterinarian access
+app.put('/api/pet-access/revoke/:accessId', auth, async (req, res) => {
+  try {
+    const { accessId } = req.params;
+
+    const access = await PetAccess.findById(accessId);
+    if (!access) {
+      return res.status(404).json({ error: 'Access record not found' });
+    }
+
+    // Verify the user is the one who granted access
+    if (access.grantedBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'You can only revoke access you granted' });
+    }
+
+    access.isRevoked = true;
+    access.revokedAt = new Date();
+    access.revokedBy = req.user._id;
+    await access.save();
+
+    res.json({ message: 'Access revoked successfully' });
+  } catch (error) {
+    console.error('Error revoking access:', error);
+    res.status(500).json({ error: 'Failed to revoke access' });
+  }
+});
+
 // Connect to MongoDB
 connectToDatabase();
 
