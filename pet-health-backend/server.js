@@ -93,6 +93,140 @@ app.post('/api/upload/pet-image', auth, upload.single('image'), (req, res) => {
   }
 });
 
+// Helper to check access: veterinarian with access or pet owner
+const hasWriteAccessToPet = async (user, petId) => {
+  const pet = await Pet.findById(petId).lean();
+  if (!pet) return false;
+  if (user.role === 'owner' && pet.owner && pet.owner.toString() === user._id.toString()) return true;
+  if (user.role === 'veterinarian') {
+    const access = await PetAccess.findOne({ veterinarian: user._id, pet: petId, isRevoked: false }).lean();
+    if (access && access.permissions && access.permissions.addMedicalRecords) return true;
+  }
+  return false;
+};
+
+// Get medical records for a pet
+app.get('/api/pets/:petId/medical-records', auth, async (req, res) => {
+  try {
+    const { petId } = req.params;
+    // Check if user has read access: owner or vet with access
+    const pet = await Pet.findById(petId).lean();
+    if (!pet) return res.status(404).json({ error: 'Pet not found' });
+
+    const user = req.user;
+    let allowed = false;
+    if (user.role === 'owner' && pet.owner && pet.owner.toString() === user._id.toString()) allowed = true;
+    if (user.role === 'veterinarian') {
+      const access = await PetAccess.findOne({ veterinarian: user._id, pet: petId, isRevoked: false }).lean();
+      if (access && access.permissions && access.permissions.viewMedicalHistory) allowed = true;
+    }
+
+    if (!allowed) return res.status(403).json({ error: 'Not authorized to view records for this pet' });
+
+    const records = await MedicalRecord.find({ pet: petId }).sort({ date: -1 }).lean();
+    res.json(records);
+  } catch (error) {
+    console.error('Error fetching medical records:', error);
+    res.status(500).json({ error: 'Failed to fetch medical records' });
+  }
+});
+
+// Create a new medical record
+app.post('/api/medical-records', auth, async (req, res) => {
+  try {
+    const user = req.user;
+    const data = req.body || {};
+    const { pet: petId } = data;
+    if (!petId) return res.status(400).json({ error: 'pet id is required' });
+
+    const canWrite = await hasWriteAccessToPet(user, petId);
+    if (!canWrite) return res.status(403).json({ error: 'Not authorized to add records for this pet' });
+
+    // Map incoming payload to schema expected fields
+    const attachments = Array.isArray(data.attachments) ? data.attachments : [];
+    if (attachments.length === 0) {
+      return res.status(400).json({ error: 'At least one attachment (PDF or image) is required' });
+    }
+
+    const record = new MedicalRecord({
+      pet: petId,
+      recordType: data.type || 'other',
+      date: data.date ? new Date(data.date) : new Date(),
+      // prefer using authenticated user as veterinarian id when they are a vet
+      veterinarian: user.role === 'veterinarian' ? user._id : (data.veterinarian || user._id),
+      notes: data.notes || '',
+      // attachments must follow { filename, fileUrl, fileType }
+      attachments: attachments.map(a => ({ filename: a.filename, fileUrl: a.fileUrl, fileType: a.fileType })),
+      cost: {
+        amount: data.cost || 0,
+        currency: 'USD',
+        paid: false
+      },
+      createdBy: user._id,
+      updatedBy: user._id
+    });
+
+    const saved = await record.save();
+    res.status(201).json(saved);
+  } catch (error) {
+    console.error('Error creating medical record:', error);
+    res.status(500).json({ error: 'Failed to create medical record' });
+  }
+});
+
+// Update a medical record
+app.put('/api/medical-records/:id', auth, async (req, res) => {
+  try {
+    const user = req.user;
+    const { id } = req.params;
+    const existing = await MedicalRecord.findById(id);
+    if (!existing) return res.status(404).json({ error: 'Medical record not found' });
+
+    const canWrite = await hasWriteAccessToPet(user, existing.pet);
+    if (!canWrite) return res.status(403).json({ error: 'Not authorized to update this record' });
+
+    const updates = req.body || {};
+    // Map updates safely to schema fields
+    if (updates.type !== undefined) existing.recordType = updates.type;
+    if (updates.date !== undefined) existing.date = new Date(updates.date);
+    if (updates.veterinarian !== undefined) existing.veterinarian = user.role === 'veterinarian' ? user._id : updates.veterinarian;
+    if (updates.notes !== undefined) existing.notes = updates.notes;
+    if (updates.attachments !== undefined && Array.isArray(updates.attachments) && updates.attachments.length > 0) {
+      existing.attachments = updates.attachments.map(a => ({ filename: a.filename, fileUrl: a.fileUrl, fileType: a.fileType }));
+    }
+    if (updates.cost !== undefined) {
+      existing.cost = { amount: updates.cost || 0, currency: (existing.cost && existing.cost.currency) || 'USD', paid: false };
+    }
+    existing.updatedBy = user._id;
+    existing.updatedAt = new Date();
+
+    const saved = await existing.save();
+    res.json(saved);
+  } catch (error) {
+    console.error('Error updating medical record:', error);
+    res.status(500).json({ error: 'Failed to update medical record' });
+  }
+});
+
+// Delete a medical record
+app.delete('/api/medical-records/:id', auth, async (req, res) => {
+  try {
+    const user = req.user;
+    const { id } = req.params;
+    const existing = await MedicalRecord.findById(id);
+    if (!existing) return res.status(404).json({ error: 'Medical record not found' });
+
+    const canWrite = await hasWriteAccessToPet(user, existing.pet);
+    if (!canWrite) return res.status(403).json({ error: 'Not authorized to delete this record' });
+
+    await MedicalRecord.deleteOne({ _id: id });
+    res.json({ message: 'Record deleted' });
+  } catch (error) {
+    console.error('Error deleting medical record:', error);
+    res.status(500).json({ error: 'Failed to delete medical record' });
+  }
+});
+
 // Get patients for veterinarian
 app.get('/api/vet/patients', auth, checkRole(['veterinarian']), async (req, res) => {
   try {

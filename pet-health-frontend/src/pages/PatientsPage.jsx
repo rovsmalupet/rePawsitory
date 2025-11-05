@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Search, User } from 'lucide-react';
+import PetRecordsPage from './PetRecordsPage';
 
 const PatientsPage = ({ patients, patientsLoading, patientsError }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedPet, setSelectedPet] = useState(null);
 
   // Filter patients based on search
   const filteredPatients = patients.filter(patient => 
@@ -25,6 +27,12 @@ const PatientsPage = ({ patients, patientsLoading, patientsError }) => {
       return `${ageInMonths} month${ageInMonths > 1 ? 's' : ''}`;
     }
   };
+
+  if (selectedPet) {
+    return (
+      <PetRecordsPage pet={selectedPet} onBack={() => setSelectedPet(null)} />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -72,7 +80,7 @@ const PatientsPage = ({ patients, patientsLoading, patientsError }) => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredPatients.map(patient => (
-            <div key={patient._id} className="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow overflow-hidden cursor-pointer">
+            <div key={patient._id} className="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow overflow-hidden">
               <div className="bg-gradient-to-br from-green-400 to-green-600 h-32 flex items-center justify-center overflow-hidden">
                 {patient.photoUrl ? (
                   <img 
@@ -123,15 +131,10 @@ const PatientsPage = ({ patients, patientsLoading, patientsError }) => {
                 )}
 
                 {/* Action buttons */}
-                <div className="mt-4 flex gap-2">
-                  <button className="flex-1 bg-green-100 text-green-700 py-2 rounded-lg hover:bg-green-200 transition-colors text-sm font-semibold">
+                <div className="mt-4">
+                  <button onClick={() => setSelectedPet(patient)} className="w-full bg-green-100 text-green-700 py-2 rounded-lg hover:bg-green-200 transition-colors text-sm font-semibold">
                     View Records
                   </button>
-                  {patient.permissions?.addMedicalRecords && (
-                    <button className="flex-1 bg-blue-100 text-blue-700 py-2 rounded-lg hover:bg-blue-200 transition-colors text-sm font-semibold">
-                      Add Record
-                    </button>
-                  )}
                 </div>
 
                 {/* Access level indicator */}
