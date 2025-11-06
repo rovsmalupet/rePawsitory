@@ -16,6 +16,9 @@ This directory contains all the modular components for the Pet Health App.
 
 ## Shared Components
 - **PageRouter.jsx**: Routes between different pages based on current page state
+- **AddPetModal.jsx**: Modal for adding new pets to the system
+- **AddRecordModal.jsx**: Modal for adding/editing medical records with file upload
+- **ViewRecordModal.jsx**: Modal for viewing medical record details and downloading attachments
 
 ## Hooks (`hooks/`)
 - **useNavigation.js**: Manages sidebar state, user role, and navigation

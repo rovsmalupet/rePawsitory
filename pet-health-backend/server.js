@@ -176,7 +176,7 @@ app.get('/api/pets/:petId/medical-records', auth, async (req, res) => {
 
     const user = req.user;
     let allowed = false;
-    if (user.role === 'owner' && pet.owner && pet.owner.toString() === user._id.toString()) allowed = true;
+    if ((user.role === 'owner' || user.role === 'pet_owner') && pet.owner && pet.owner.toString() === user._id.toString()) allowed = true;
     if (user.role === 'veterinarian') {
       const access = await PetAccess.findOne({ veterinarian: user._id, pet: petId, isRevoked: false }).lean();
       if (access && access.permissions && access.permissions.viewMedicalHistory) allowed = true;
