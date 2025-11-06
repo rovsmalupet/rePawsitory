@@ -216,7 +216,17 @@ const AddPetModal = ({ isOpen, onClose, onSave }) => {
       onClose();
     } catch (error) {
       console.error('Error saving pet:', error);
-      // You could add an error message here
+      
+      // Check if it's a profile incomplete error
+      if (error.response?.data?.profileIncomplete) {
+        setErrors({
+          submit: 'Please complete your profile in Settings before adding pets. You need to add your phone number and address.'
+        });
+      } else {
+        setErrors({
+          submit: error.message || 'Failed to save pet. Please try again.'
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -269,6 +279,13 @@ const AddPetModal = ({ isOpen, onClose, onSave }) => {
 
         <div className="overflow-y-auto flex-1">
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* General Error Message */}
+          {errors.submit && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-700">{errors.submit}</p>
+            </div>
+          )}
+          
           <div>
             <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-2">
               Pet Name <span className="text-red-500">*</span>

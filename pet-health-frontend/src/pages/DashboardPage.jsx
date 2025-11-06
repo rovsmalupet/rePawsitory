@@ -1,7 +1,36 @@
-import React from 'react';
-import { Heart, FileText, Users, Bell } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Heart, FileText, Users, Bell, AlertTriangle, Settings } from 'lucide-react';
+import { useNavigation } from '../hooks/useNavigation';
 
 const DashboardPage = ({ userRole, pets, recentRecords, petsLoading, petsError }) => {
+  const { navigateTo } = useNavigation();
+  const [profileComplete, setProfileComplete] = useState(true);
+  const [checkingProfile, setCheckingProfile] = useState(true);
+
+  useEffect(() => {
+    const checkProfileCompletion = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:5001/api/profile', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setProfileComplete(data.user.profileCompleted || false);
+        }
+      } catch (error) {
+        console.error('Error checking profile:', error);
+      } finally {
+        setCheckingProfile(false);
+      }
+    };
+
+    checkProfileCompletion();
+  }, []);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -9,6 +38,32 @@ const DashboardPage = ({ userRole, pets, recentRecords, petsLoading, petsError }
           {userRole === 'owner' ? 'Pet Owner Dashboard' : 'Veterinarian Dashboard'}
         </h1>
       </div>
+
+      {/* Profile Completion Warning */}
+      {!checkingProfile && !profileComplete && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg shadow-md">
+          <div className="flex items-start gap-4">
+            <AlertTriangle className="text-yellow-600 flex-shrink-0 mt-1" size={24} />
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-yellow-900 mb-2">
+                Complete Your Profile
+              </h3>
+              <p className="text-yellow-800 mb-4">
+                Please complete your profile to unlock all features. You need to add your phone number and address
+                {userRole === 'vet' && ', along with your clinic name, license number, and specialization'}
+                {' '}before you can {userRole === 'owner' ? 'add pets or grant access to veterinarians' : 'view your assigned patients'}.
+              </p>
+              <button
+                onClick={() => navigateTo('settings')}
+                className="flex items-center gap-2 bg-yellow-600 text-white px-6 py-2 rounded-lg hover:bg-yellow-700 transition-colors font-semibold"
+              >
+                <Settings size={18} />
+                Complete Profile Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

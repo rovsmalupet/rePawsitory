@@ -208,7 +208,7 @@ const SettingsPage = () => {
         </div>
 
         {/* Veterinarian-specific fields */}
-        {userRole === 'vet' && (
+        {(userRole === 'veterinarian' || userRole === 'vet') && (
           <div className="bg-white rounded-xl shadow-md p-6 mb-6">
             <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
               <Briefcase size={24} className="text-blue-600" />
@@ -217,7 +217,7 @@ const SettingsPage = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Clinic Name
+                  Clinic Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -233,7 +233,7 @@ const SettingsPage = () => {
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  License Number
+                  License Number <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -249,7 +249,7 @@ const SettingsPage = () => {
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Specialization
+                  Specialization <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"

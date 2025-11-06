@@ -4,15 +4,25 @@ export const usePatients = () => {
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
 
     const fetchPatients = async () => {
       try {
+        setLoading(true);
+        setError(null);
         const token = localStorage.getItem('token');
-        if (!token) {
-          throw new Error('No authentication token found');
+        const user = localStorage.getItem('user');
+        
+        // Don't fetch if no token or user
+        if (!token || !user) {
+          if (isMounted) {
+            setPatients([]);
+            setLoading(false);
+          }
+          return;
         }
 
         const response = await fetch('http://localhost:5001/api/vet/patients', {
@@ -33,6 +43,7 @@ export const usePatients = () => {
       } catch (err) {
         if (isMounted) {
           setError(err);
+          setPatients([]); // Clear patients on error
           console.error('Error fetching patients:', err);
         }
       } finally {
@@ -47,7 +58,11 @@ export const usePatients = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [refetchTrigger]); // Re-fetch when refetchTrigger changes
 
-  return { patients, loading, error };
+  const refetch = () => {
+    setRefetchTrigger(prev => prev + 1);
+  };
+
+  return { patients, loading, error, refetch };
 };

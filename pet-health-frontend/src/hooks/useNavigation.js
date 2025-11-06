@@ -45,9 +45,17 @@ export const useNavigation = () => {
   };
 
   const logout = () => {
+    // Clear authentication state
     setIsAuthenticated(false);
     setUserRole(null);
     setCurrentPage('dashboard');
+    
+    // Clear localStorage
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    
+    // Force a page reload to clear all state
+    window.location.reload();
   };
 
   return {

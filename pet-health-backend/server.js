@@ -30,6 +30,8 @@ app.use('/api', authRoutes);
 app.get('/api/profile', auth, async (req, res) => {
   try {
     // req.user is set by auth middleware
+    const profileComplete = req.user.isProfileComplete();
+    
     res.json({
       message: 'Profile accessed successfully',
       user: {
@@ -41,7 +43,8 @@ app.get('/api/profile', auth, async (req, res) => {
         address: req.user.address,
         clinic: req.user.clinic,
         license: req.user.license,
-        specialization: req.user.specialization
+        specialization: req.user.specialization,
+        profileCompleted: profileComplete
       }
     });
   } catch (error) {
@@ -74,6 +77,13 @@ app.put('/api/profile/update', auth, async (req, res) => {
       { new: true, runValidators: true }
     );
 
+    // Check if profile is now complete and update the flag
+    const profileComplete = updatedUser.isProfileComplete();
+    if (profileComplete !== updatedUser.profileCompleted) {
+      updatedUser.profileCompleted = profileComplete;
+      await updatedUser.save();
+    }
+
     res.json({
       message: 'Profile updated successfully',
       user: {
@@ -82,7 +92,11 @@ app.put('/api/profile/update', auth, async (req, res) => {
         email: updatedUser.email,
         role: updatedUser.role,
         phone: updatedUser.phone,
-        address: updatedUser.address
+        address: updatedUser.address,
+        clinic: updatedUser.clinic,
+        license: updatedUser.license,
+        specialization: updatedUser.specialization,
+        profileCompleted: updatedUser.profileCompleted
       }
     });
   } catch (error) {
@@ -338,6 +352,14 @@ app.get('/api/vets', auth, async (req, res) => {
 // Grant veterinarian access to a pet (pet owner grants access)
 app.post('/api/pet-access/grant', auth, async (req, res) => {
   try {
+    // Check if profile is complete
+    if (!req.user.isProfileComplete()) {
+      return res.status(403).json({ 
+        error: 'Please complete your profile before granting access',
+        profileIncomplete: true
+      });
+    }
+
     const { petId, veterinarianId, accessLevel, permissions } = req.body;
 
     // Verify the pet exists and belongs to the requesting user
@@ -477,6 +499,14 @@ app.get("/pets", auth, async (req, res) => {
 // Endpoint to add a new pet
 app.post("/pets", auth, async (req, res) => {
   try {
+    // Check if profile is complete
+    if (!req.user.isProfileComplete()) {
+      return res.status(403).json({ 
+        error: 'Please complete your profile before adding pets',
+        profileIncomplete: true
+      });
+    }
+
     const { 
       name, 
       species, 

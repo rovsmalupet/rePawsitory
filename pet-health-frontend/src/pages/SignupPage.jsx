@@ -1,25 +1,95 @@
 import React, { useState } from 'react';
 
 const SignupPage = ({ signup, switchToLogin }) => {
-  const [role, setRole] = useState('owner');
+  const [role, setRole] = useState('pet_owner');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  
+  // Vet-specific fields
+  const [clinic, setClinic] = useState('');
+  const [license, setLicense] = useState('');
+  const [specialization, setSpecialization] = useState('');
+  
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    
     if (!name.trim() || !email.trim() || !password.trim()) {
       setError('Please fill out all required fields.');
       return;
     }
+    
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long.');
+      return;
+    }
+    
     if (password !== confirmPassword) {
       setError('Passwords do not match.');
       return;
     }
-    signup(role);
+
+    // Validate vet-specific fields
+    if (role === 'veterinarian') {
+      if (!clinic.trim() || !license.trim() || !specialization.trim()) {
+        setError('Veterinarians must provide clinic, license, and specialization.');
+        return;
+      }
+    }
+
+    setIsLoading(true);
+
+    try {
+      const registrationData = {
+        name: name.trim(),
+        email: email.trim(),
+        password,
+        role,
+        phone: phone.trim() || undefined
+      };
+
+      // Add vet-specific fields if role is veterinarian
+      if (role === 'veterinarian') {
+        registrationData.clinic = clinic.trim();
+        registrationData.license = license.trim();
+        registrationData.specialization = specialization.trim();
+      }
+
+      const response = await fetch('http://localhost:5001/api/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(registrationData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed');
+      }
+
+      // Store the token and user data
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      // Call the signup function with the user role
+      if (data.user && data.user.role) {
+        signup(data.user.role);
+      } else {
+        throw new Error('Invalid user data received');
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -57,6 +127,17 @@ const SignupPage = ({ signup, switchToLogin }) => {
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Phone (optional)</label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="+1-555-0123"
+            />
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
@@ -88,17 +169,62 @@ const SignupPage = ({ signup, switchToLogin }) => {
               value={role}
               onChange={(e) => setRole(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={isLoading}
             >
-              <option value="owner">Pet Owner</option>
-              <option value="vet">Veterinarian</option>
+              <option value="pet_owner">Pet Owner</option>
+              <option value="veterinarian">Veterinarian</option>
             </select>
           </div>
 
+          {/* Vet-specific fields */}
+          {role === 'veterinarian' && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Clinic Name *</label>
+                <input
+                  type="text"
+                  value={clinic}
+                  onChange={(e) => setClinic(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Happy Paws Veterinary Clinic"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">License Number *</label>
+                  <input
+                    type="text"
+                    value={license}
+                    onChange={(e) => setLicense(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="VET-2024-12345"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Specialization *</label>
+                  <input
+                    type="text"
+                    value={specialization}
+                    onChange={(e) => setSpecialization(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Small Animal Medicine"
+                    required
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition-colors"
+            disabled={isLoading}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Create account
+            {isLoading ? 'Creating account...' : 'Create account'}
           </button>
         </form>
 

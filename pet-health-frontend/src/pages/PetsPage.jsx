@@ -1,9 +1,48 @@
-import React, { useState } from 'react';
-import { PlusCircle, Search, Calendar, Weight, Heart, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { PlusCircle, Search, Calendar, Weight, Heart, AlertCircle, AlertTriangle, Settings } from 'lucide-react';
 import AddPetModal from '../components/AddPetModal';
+import { useNavigation } from '../hooks/useNavigation';
 
 const PetsPage = ({ pets, petsLoading, petsError, addPet }) => {
+  const { navigateTo } = useNavigation();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [profileComplete, setProfileComplete] = useState(true);
+  const [checkingProfile, setCheckingProfile] = useState(true);
+  const [showError, setShowError] = useState(false);
+
+  useEffect(() => {
+    const checkProfileCompletion = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:5001/api/profile', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setProfileComplete(data.user.profileCompleted || false);
+        }
+      } catch (error) {
+        console.error('Error checking profile:', error);
+      } finally {
+        setCheckingProfile(false);
+      }
+    };
+
+    checkProfileCompletion();
+  }, []);
+
+  const handleAddPetClick = () => {
+    if (!profileComplete) {
+      setShowError(true);
+      // Auto-hide error after 5 seconds
+      setTimeout(() => setShowError(false), 5000);
+    } else {
+      setIsModalOpen(true);
+    }
+  };
 
   // Helper function to calculate age from date of birth
   const calculateAge = (dateOfBirth) => {
@@ -35,11 +74,52 @@ const PetsPage = ({ pets, petsLoading, petsError, addPet }) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-800">My Pets</h1>
-        <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+        <button 
+          onClick={handleAddPetClick}
+          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+        >
           <PlusCircle size={20} />
           Add New Pet
         </button>
       </div>
+
+      {/* Profile Incomplete Warning - Non-dismissible */}
+      {!checkingProfile && !profileComplete && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg shadow-md">
+          <div className="flex items-start gap-4">
+            <AlertTriangle className="text-yellow-600 flex-shrink-0 mt-1" size={24} />
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-yellow-900 mb-2">
+                Complete Your Profile to Add Pets
+              </h3>
+              <p className="text-yellow-800 mb-4">
+                You need to add your phone number and address in Settings before you can add pets to your account.
+              </p>
+              <button
+                onClick={() => navigateTo('settings')}
+                className="flex items-center gap-2 bg-yellow-600 text-white px-6 py-2 rounded-lg hover:bg-yellow-700 transition-colors font-semibold"
+              >
+                <Settings size={18} />
+                Go to Settings
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Message when trying to add pet with incomplete profile */}
+      {showError && (
+        <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-lg shadow-md">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="text-red-600 flex-shrink-0 mt-0.5" size={20} />
+            <div className="flex-1">
+              <p className="text-red-800 font-medium">
+                Please complete your profile before adding pets. Click "Go to Settings" above to add your phone number and address.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <AddPetModal
         isOpen={isModalOpen}

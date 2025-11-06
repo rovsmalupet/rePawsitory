@@ -12,20 +12,36 @@ const PetHealthApp = () => {
   const navigation = useNavigation();
   const [authView, setAuthView] = useState('login'); // 'login' | 'signup'
   const { recentRecords } = useMockData();
-  const { pets, loading, error, addPet } = usePets();
-  const { patients, loading: patientsLoading, error: patientsError } = usePatients();
+  
+  // Only fetch pets and patients when authenticated
+  const { pets, loading, error, addPet, refetch: refetchPets } = usePets();
+  const { patients, loading: patientsLoading, error: patientsError, refetch: refetchPatients } = usePatients();
 
   return (
     <>
       {!navigation.isAuthenticated ? (
         authView === 'login' ? (
           <LoginPage 
-            login={navigation.login} 
+            login={(role) => {
+              navigation.login(role);
+              // Trigger refetch after login
+              setTimeout(() => {
+                if (refetchPets) refetchPets();
+                if (refetchPatients) refetchPatients();
+              }, 100);
+            }}
             switchToSignup={() => setAuthView('signup')} 
           />
         ) : (
           <SignupPage 
-            signup={navigation.signup} 
+            signup={(role) => {
+              navigation.signup(role);
+              // Trigger refetch after signup
+              setTimeout(() => {
+                if (refetchPets) refetchPets();
+                if (refetchPatients) refetchPatients();
+              }, 100);
+            }}
             switchToLogin={() => setAuthView('login')} 
           />
         )
