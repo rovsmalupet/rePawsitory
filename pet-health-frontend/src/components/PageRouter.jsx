@@ -29,7 +29,7 @@ const PageRouter = ({
       // Veterinarians see their patients
       return <PatientsPage patients={patients} patientsLoading={patientsLoading} patientsError={patientsError} />;
     case 'records':
-      return <RecordsPage recentRecords={recentRecords} />;
+      return <RecordsPage pets={pets} />;
     case 'sharing':
       return <SharingPage />;
     case 'settings':

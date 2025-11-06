@@ -1,34 +1,51 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import AddRecordModal from '../components/AddRecordModal';
-import { ArrowLeft, Edit2, Trash2 } from 'lucide-react';
+import ViewRecordModal from '../components/ViewRecordModal';
+import { ArrowLeft, Edit2, Trash2, FileText } from 'lucide-react';
 
-const PetRecordsPage = ({ pet, onBack }) => {
+const PetRecordsPage = ({ pet, onBack, viewOnly = false, isOwner = false }) => {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
+  const [viewingRecord, setViewingRecord] = useState(null);
 
-  const fetchRecords = async () => {
+  const fetchRecords = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:5001/api/pets/${pet._id}/medical-records`, {
+      const petId = pet._id || pet.id;
+      
+      if (!petId) {
+        console.error('Pet object:', pet);
+        throw new Error('Pet ID is missing');
+      }
+      
+      console.log('Fetching records for pet ID:', petId);
+      const res = await fetch(`http://localhost:5001/api/pets/${petId}/medical-records`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (!res.ok) throw new Error('Failed to load records');
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error('Response error:', res.status, errorData);
+        throw new Error(errorData.error || 'Failed to load records');
+      }
+      
       const data = await res.json();
+      console.log('Fetched records:', data);
       setRecords(data);
     } catch (err) {
-      console.error(err);
+      console.error('Error in fetchRecords:', err);
       setError(err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [pet]);
 
-  useEffect(() => { if (pet) fetchRecords(); }, [pet]);
+  useEffect(() => { if (pet) fetchRecords(); }, [pet, fetchRecords]);
 
   const handleAdd = (newRecord) => {
     // prepend
@@ -69,13 +86,22 @@ const PetRecordsPage = ({ pet, onBack }) => {
     }
   };
 
+  const formatDate = (date) => {
+    if (!date) return 'N/A';
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Back button */}
       <div>
         <button onClick={onBack} className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors">
           <ArrowLeft size={20} />
-          <span className="font-medium">Back to Patients</span>
+          <span className="font-medium">Back to {isOwner ? 'My Pets' : 'Patients'}</span>
         </button>
       </div>
 
@@ -191,14 +217,16 @@ const PetRecordsPage = ({ pet, onBack }) => {
         </div>
 
         {/* Add Record Button - Bottom */}
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <button 
-            onClick={() => setIsAddOpen(true)} 
-            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold shadow-md hover:shadow-lg"
-          >
-            + Add Medical Record
-          </button>
-        </div>
+        {!viewOnly && (
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <button 
+              onClick={() => setIsAddOpen(true)} 
+              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold shadow-md hover:shadow-lg"
+            >
+              + Add Medical Record
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Medical Records Section */}
@@ -228,90 +256,76 @@ const PetRecordsPage = ({ pet, onBack }) => {
           <div className="text-center py-16 bg-gray-50 rounded-lg">
             <div className="text-6xl mb-4">📋</div>
             <p className="text-gray-600 text-lg font-medium mb-2">No medical records yet</p>
-            <p className="text-gray-500 text-sm mb-4">Get started by adding {pet.name}'s first medical record</p>
-            <button 
-              onClick={() => setIsAddOpen(true)}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-            >
-              Add First Record
-            </button>
+            <p className="text-gray-500 text-sm mb-4">
+              {viewOnly 
+                ? `${pet.name} doesn't have any medical records yet` 
+                : `Get started by adding ${pet.name}'s first medical record`
+              }
+            </p>
+            {!viewOnly && (
+              <button 
+                onClick={() => setIsAddOpen(true)}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+              >
+                Add First Record
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
             {records.map(rec => (
-              <div key={rec._id} className="flex items-start justify-between bg-gray-50 hover:bg-gray-100 transition-colors p-4 rounded-lg border border-gray-200">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full uppercase">
-                      {rec.recordType}
-                    </span>
-                    <div className="font-bold text-lg text-gray-800">{rec.title || rec.recordType}</div>
-                    <div className="text-sm text-gray-500">
-                      {rec.date ? new Date(rec.date).toLocaleDateString('en-US', { 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                      }) : ''}
-                    </div>
+              <div 
+                key={rec._id} 
+                className={`flex items-center justify-between p-4 border border-gray-200 rounded-lg transition-colors ${
+                  viewOnly ? 'hover:border-blue-300 cursor-pointer' : 'hover:bg-gray-50'
+                }`}
+                onClick={viewOnly ? () => setViewingRecord(rec) : undefined}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <FileText size={24} className="text-blue-600" />
                   </div>
-                  
-                  {rec.notes && (
-                    <div className="text-sm text-gray-700 mb-3 pl-1">{rec.notes}</div>
-                  )}
-                  
-                  {/* Cost info */}
-                  {rec.cost && rec.cost.amount > 0 && (
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-sm text-gray-600">
-                        Cost: <span className="font-semibold">${rec.cost.amount}</span>
-                      </span>
-                      <span className={`text-xs px-2 py-1 rounded ${rec.cost.paid ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                        {rec.cost.paid ? 'Paid' : 'Unpaid'}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {/* Attachments */}
-                  {rec.attachments && rec.attachments.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {rec.attachments.map((a, i) => (
-                        <a 
-                          key={i}
-                          className="flex items-center gap-2 text-sm bg-white border border-gray-300 text-blue-600 hover:bg-blue-50 px-3 py-2 rounded transition-colors" 
-                          href={`http://localhost:5001${a.fileUrl}`} 
-                          target="_blank" 
-                          rel="noreferrer"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                          </svg>
-                          {a.filename || a.fileUrl.split('/').pop()}
-                        </a>
-                      ))}
-                    </div>
-                  )}
+                  <div>
+                    <h3 className="font-bold text-gray-800">{rec.title || rec.recordType}</h3>
+                    <p className="text-sm text-gray-600">
+                      <span className="capitalize">{rec.recordType.replace('_', ' ')}</span>
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">{formatDate(rec.date)}</p>
+                  </div>
                 </div>
-
-                {/* Action Buttons */}
-                <div className="flex flex-col gap-2 ml-6">
-                  <button 
-                    onClick={() => setEditingRecord(rec)} 
-                    className="px-4 py-2 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition-colors flex items-center gap-2 font-semibold"
-                  >
-                    <Edit2 size={16}/> Edit
-                  </button>
-                  <button 
-                    onClick={() => handleDelete(rec)} 
-                    className="px-4 py-2 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition-colors flex items-center gap-2 font-semibold"
-                  >
-                    <Trash2 size={16}/> Delete
-                  </button>
-                </div>
+                {!viewOnly && (
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => setViewingRecord(rec)}
+                      className="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm font-semibold"
+                    >
+                      View Details
+                    </button>
+                    <button 
+                      onClick={() => setEditingRecord(rec)} 
+                      className="px-4 py-2 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition-colors flex items-center gap-2 font-semibold"
+                    >
+                      <Edit2 size={16}/> Edit
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(rec)} 
+                      className="px-4 py-2 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition-colors flex items-center gap-2 font-semibold"
+                    >
+                      <Trash2 size={16}/> Delete
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         )}
       </div>
+
+      <ViewRecordModal 
+        isOpen={!!viewingRecord}
+        onClose={() => setViewingRecord(null)}
+        record={viewingRecord}
+      />
 
       <AddRecordModal
         isOpen={isAddOpen}

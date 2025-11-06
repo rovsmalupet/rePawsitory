@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, FileText, Users, Bell, AlertTriangle, Settings } from 'lucide-react';
+import ViewRecordModal from '../components/ViewRecordModal';
 
 const DashboardPage = ({ userRole, pets, recentRecords, petsLoading, petsError, setCurrentPage }) => {
   const [profileComplete, setProfileComplete] = useState(true); // Default to true to avoid showing warning before check
   const [checkingProfile, setCheckingProfile] = useState(true);
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [loadingActivity, setLoadingActivity] = useState(true);
+  const [viewingRecord, setViewingRecord] = useState(null);
 
   useEffect(() => {
     const checkProfileCompletion = async () => {
@@ -35,6 +39,48 @@ const DashboardPage = ({ userRole, pets, recentRecords, petsLoading, petsError, 
 
     checkProfileCompletion();
   }, []);
+
+  // Fetch recent medical records
+  useEffect(() => {
+    const fetchRecentActivity = async () => {
+      if (!pets || pets.length === 0) {
+        setLoadingActivity(false);
+        return;
+      }
+
+      setLoadingActivity(true);
+      try {
+        const token = localStorage.getItem('token');
+        const recordsPromises = pets.map(pet =>
+          fetch(`http://localhost:5001/api/pets/${pet._id}/medical-records`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          }).then(res => res.ok ? res.json() : [])
+            .then(records => records.map(r => ({ ...r, petName: pet.name, petId: pet._id })))
+        );
+        
+        const results = await Promise.all(recordsPromises);
+        const combined = results.flat().sort((a, b) => new Date(b.date) - new Date(a.date));
+        // Get only the 3 most recent
+        setRecentActivity(combined.slice(0, 3));
+      } catch (error) {
+        console.error('Error fetching recent activity:', error);
+        setRecentActivity([]);
+      } finally {
+        setLoadingActivity(false);
+      }
+    };
+
+    fetchRecentActivity();
+  }, [pets]);
+
+  const formatDate = (date) => {
+    if (!date) return 'N/A';
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -71,27 +117,29 @@ const DashboardPage = ({ userRole, pets, recentRecords, petsLoading, petsError, 
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-100 text-sm">Total Pets</p>
-              <p className="text-3xl font-bold mt-1">
-                {petsLoading ? (
-                  <span className="text-lg">Loading...</span>
-                ) : petsError ? (
-                  <span className="text-lg">--</span>
-                ) : (
-                  pets.length
+      <div className={`grid grid-cols-1 ${userRole === 'vet' ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-6`}>
+        {userRole === 'owner' && (
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-blue-100 text-sm">Total Pets</p>
+                <p className="text-3xl font-bold mt-1">
+                  {petsLoading ? (
+                    <span className="text-lg">Loading...</span>
+                  ) : petsError ? (
+                    <span className="text-lg">--</span>
+                  ) : (
+                    pets.length
+                  )}
+                </p>
+                {petsError && (
+                  <p className="text-blue-200 text-xs mt-1">Unable to load</p>
                 )}
-              </p>
-              {petsError && (
-                <p className="text-blue-200 text-xs mt-1">Unable to load</p>
-              )}
+              </div>
+              <Heart size={40} className="opacity-80" />
             </div>
-            <Heart size={40} className="opacity-80" />
           </div>
-        </div>
+        )}
 
         <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-xl shadow-lg">
           <div className="flex items-center justify-between">
@@ -119,58 +167,85 @@ const DashboardPage = ({ userRole, pets, recentRecords, petsLoading, petsError, 
       {/* Recent Activity */}
       <div className="bg-white rounded-xl shadow-md p-6">
         <h2 className="text-xl font-bold text-gray-800 mb-4">Recent Activity</h2>
-        <div className="space-y-3">
-          {recentRecords.map(record => (
-            <div key={record.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <FileText size={20} className="text-blue-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800">{record.title}</p>
-                  <p className="text-sm text-gray-600">{record.petName} • {record.type}</p>
-                </div>
-              </div>
-              <p className="text-sm text-gray-500">{record.date}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">Quick Actions</h3>
-          <div className="space-y-2">
-            <button className="w-full text-left px-4 py-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors">
-              + Add Medical Record
-            </button>
-            <button className="w-full text-left px-4 py-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors">
-              🔗 Share Pet Records
-            </button>
+        {loadingActivity ? (
+          <div className="text-center py-8">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
+            <p className="text-gray-500 text-sm">Loading recent activity...</p>
           </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">Upcoming Reminders</h3>
+        ) : recentActivity.length === 0 ? (
+          <div className="text-center py-8 bg-gray-50 rounded-lg">
+            <FileText size={40} className="mx-auto text-gray-400 mb-2" />
+            <p className="text-gray-600">No recent medical records</p>
+            <p className="text-gray-500 text-sm mt-1">Recent medical records will appear here</p>
+          </div>
+        ) : (
           <div className="space-y-3">
-            <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
-              <Bell size={20} className="text-yellow-600" />
-              <div>
-                <p className="font-semibold text-gray-800">Max - Deworming Due</p>
-                <p className="text-sm text-gray-600">Due in 3 days</p>
+            {recentActivity.map(record => (
+              <div 
+                key={record._id} 
+                onClick={() => setViewingRecord(record)}
+                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <FileText size={20} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-800">{record.title || record.recordType}</p>
+                    <p className="text-sm text-gray-600">
+                      {record.petName} • <span className="capitalize">{record.recordType.replace('_', ' ')}</span>
+                    </p>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-500">{formatDate(record.date)}</p>
               </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <ViewRecordModal 
+        isOpen={!!viewingRecord}
+        onClose={() => setViewingRecord(null)}
+        record={viewingRecord}
+      />
+
+      {/* Quick Actions and Reminders - Only for Owners */}
+      {userRole === 'owner' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Quick Actions</h3>
+            <div className="space-y-2">
+              <button className="w-full text-left px-4 py-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors">
+                + Add Medical Record
+              </button>
+              <button className="w-full text-left px-4 py-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors">
+                🔗 Share Pet Records
+              </button>
             </div>
-            <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
-              <Bell size={20} className="text-yellow-600" />
-              <div>
-                <p className="font-semibold text-gray-800">Luna - Annual Checkup</p>
-                <p className="text-sm text-gray-600">Due in 1 week</p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Upcoming Reminders</h3>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
+                <Bell size={20} className="text-yellow-600" />
+                <div>
+                  <p className="font-semibold text-gray-800">Max - Deworming Due</p>
+                  <p className="text-sm text-gray-600">Due in 3 days</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
+                <Bell size={20} className="text-yellow-600" />
+                <div>
+                  <p className="font-semibold text-gray-800">Luna - Annual Checkup</p>
+                  <p className="text-sm text-gray-600">Due in 1 week</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

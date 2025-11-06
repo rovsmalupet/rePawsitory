@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PlusCircle, Search, Calendar, Weight, Heart, AlertCircle, AlertTriangle, Settings } from 'lucide-react';
 import AddPetModal from '../components/AddPetModal';
+import PetRecordsPage from './PetRecordsPage';
 import { useNavigation } from '../hooks/useNavigation';
 
 const PetsPage = ({ pets, petsLoading, petsError, addPet }) => {
@@ -9,6 +10,8 @@ const PetsPage = ({ pets, petsLoading, petsError, addPet }) => {
   const [profileComplete, setProfileComplete] = useState(true);
   const [checkingProfile, setCheckingProfile] = useState(true);
   const [showError, setShowError] = useState(false);
+  const [selectedPet, setSelectedPet] = useState(null);
+  const [viewMode, setViewMode] = useState(null); // 'view' or 'edit'
 
   useEffect(() => {
     const checkProfileCompletion = async () => {
@@ -69,6 +72,18 @@ const PetsPage = ({ pets, petsLoading, petsError, addPet }) => {
       default: return '? Unknown';
     }
   };
+
+  // If viewing a pet's records, show PetRecordsPage
+  if (selectedPet) {
+    return (
+      <PetRecordsPage 
+        pet={selectedPet} 
+        onBack={() => setSelectedPet(null)}
+        viewOnly={viewMode === 'view'}
+        isOwner={true}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -214,10 +229,22 @@ const PetsPage = ({ pets, petsLoading, petsError, addPet }) => {
               </div>
 
               <div className="mt-4 flex gap-2">
-                <button className="flex-1 bg-blue-100 text-blue-700 py-2 rounded-lg hover:bg-blue-200 transition-colors text-sm font-semibold">
+                <button 
+                  onClick={() => {
+                    setSelectedPet(pet);
+                    setViewMode('view');
+                  }}
+                  className="flex-1 bg-blue-100 text-blue-700 py-2 rounded-lg hover:bg-blue-200 transition-colors text-sm font-semibold"
+                >
                   View Details
                 </button>
-                <button className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm font-semibold">
+                <button 
+                  onClick={() => {
+                    setSelectedPet(pet);
+                    setViewMode('edit');
+                  }}
+                  className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm font-semibold"
+                >
                   Edit
                 </button>
               </div>
