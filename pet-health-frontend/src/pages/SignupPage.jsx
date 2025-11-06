@@ -75,16 +75,10 @@ const SignupPage = ({ signup, switchToLogin }) => {
         throw new Error(data.error || 'Registration failed');
       }
 
-      // Store the token and user data
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-
-      // Call the signup function with the user role
-      if (data.user && data.user.role) {
-        signup(data.user.role);
-      } else {
-        throw new Error('Invalid user data received');
-      }
+      // Registration successful - redirect to login page
+      // Don't store token or auto-login, just switch to login view
+      switchToLogin();
+      
     } catch (err) {
       setError(err.message);
     } finally {
