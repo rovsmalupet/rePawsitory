@@ -12,7 +12,6 @@ const AddPetModal = ({ isOpen, onClose, onSave }) => {
     weight: '',
     weightUnit: 'kg',
     color: '',
-    microchipId: '',
     photoUrl: '',
     allergies: '',
     chronicConditions: '',
@@ -169,7 +168,6 @@ const AddPetModal = ({ isOpen, onClose, onSave }) => {
           date: new Date()
         } : undefined,
         color: formData.color.trim() || '',
-        microchipId: formData.microchipId.trim() || '',
         photoUrl: formData.photoUrl || '',
         allergies: formData.allergies ? formData.allergies.split(',').map(a => a.trim()).filter(a => a) : [],
         chronicConditions: formData.chronicConditions ? formData.chronicConditions.split(',').map(c => c.trim()).filter(c => c).map(condition => ({
@@ -197,7 +195,6 @@ const AddPetModal = ({ isOpen, onClose, onSave }) => {
         weight: '',
         weightUnit: 'kg',
         color: '',
-        microchipId: '',
         photoUrl: '',
         allergies: '',
         chronicConditions: '',
@@ -242,7 +239,6 @@ const AddPetModal = ({ isOpen, onClose, onSave }) => {
       weight: '',
       weightUnit: 'kg',
       color: '',
-      microchipId: '',
       photoUrl: '',
       allergies: '',
       chronicConditions: '',
@@ -428,21 +424,6 @@ const AddPetModal = ({ isOpen, onClose, onSave }) => {
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Enter color (optional)"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="microchipId" className="block text-sm font-semibold text-gray-700 mb-2">
-              Microchip ID
-            </label>
-            <input
-              type="text"
-              id="microchipId"
-              name="microchipId"
-              value={formData.microchipId}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter microchip ID (optional)"
             />
           </div>
 

@@ -321,7 +321,6 @@ app.get('/api/vet/patients', auth, checkRole(['veterinarian']), async (req, res)
         gender: access.pet.gender,
         weight: access.pet.weight,
         color: access.pet.color,
-        microchipId: access.pet.microchipId,
         photoUrl: access.pet.photoUrl,
         allergies: access.pet.allergies,
         chronicConditions: access.pet.chronicConditions,
@@ -521,7 +520,6 @@ app.post("/pets", auth, async (req, res) => {
       gender, 
       weight, 
       color, 
-      microchipId, 
       photoUrl, 
       allergies, 
       chronicConditions, 
@@ -551,7 +549,6 @@ app.post("/pets", auth, async (req, res) => {
       gender,
       weight: weight || undefined,
       color: color ? color.trim() : '',
-      microchipId: microchipId ? microchipId.trim() : '',
       photoUrl: photoUrl || '',
       allergies: allergies || [],
       chronicConditions: chronicConditions || [],
@@ -590,7 +587,6 @@ app.put("/pets/:id", auth, async (req, res) => {
       gender, 
       weight, 
       color, 
-      microchipId, 
       photoUrl, 
       allergies, 
       chronicConditions, 
@@ -605,7 +601,6 @@ app.put("/pets/:id", auth, async (req, res) => {
     if (gender !== undefined) pet.gender = gender;
     if (weight !== undefined) pet.weight = weight;
     if (color !== undefined) pet.color = color.trim();
-    if (microchipId !== undefined) pet.microchipId = microchipId.trim();
     if (photoUrl !== undefined) pet.photoUrl = photoUrl;
     if (allergies !== undefined) pet.allergies = allergies;
     if (chronicConditions !== undefined) pet.chronicConditions = chronicConditions;
@@ -616,6 +611,35 @@ app.put("/pets/:id", auth, async (req, res) => {
   } catch (err) {
     console.error('Error updating pet:', err);
     return res.status(500).json({ error: err.message || 'Failed to update pet' });
+  }
+});
+
+// Delete pet
+app.delete("/pets/:id", auth, async (req, res) => {
+  try {
+    const petId = req.params.id;
+    
+    // Find the pet
+    const pet = await Pet.findById(petId);
+    if (!pet) {
+      return res.status(404).json({ error: 'Pet not found' });
+    }
+
+    // Check if user is the owner
+    if (pet.owner.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Not authorized to delete this pet' });
+    }
+
+    // Delete all medical records associated with this pet
+    await MedicalRecord.deleteMany({ pet: petId });
+
+    // Delete the pet
+    await Pet.findByIdAndDelete(petId);
+    
+    return res.status(200).json({ message: 'Pet and associated records deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting pet:', err);
+    return res.status(500).json({ error: err.message || 'Failed to delete pet' });
   }
 });
 

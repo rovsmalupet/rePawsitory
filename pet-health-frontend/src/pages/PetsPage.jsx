@@ -5,7 +5,7 @@ import EditPetModal from '../components/EditPetModal';
 import PetRecordsPage from './PetRecordsPage';
 import { useNavigation } from '../hooks/useNavigation';
 
-const PetsPage = ({ pets, petsLoading, petsError, addPet }) => {
+const PetsPage = ({ pets, petsLoading, petsError, addPet, refetchPets }) => {
   const { navigateTo } = useNavigation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [profileComplete, setProfileComplete] = useState(true);
@@ -52,7 +52,9 @@ const PetsPage = ({ pets, petsLoading, petsError, addPet }) => {
   const handleUpdatePet = async () => {
     // Refresh the pets list after updating
     setEditingPet(null);
-    window.location.reload(); // Simple refresh, or you could fetch the updated pets list
+    if (refetchPets) {
+      refetchPets(); // Refresh pets data without reloading the page
+    }
   };
 
   // Helper function to calculate age from date of birth
