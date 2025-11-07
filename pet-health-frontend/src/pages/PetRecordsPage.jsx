@@ -151,12 +151,6 @@ const PetRecordsPage = ({ pet, onBack, viewOnly = false, isOwner = false, onEdit
                   <p className="text-gray-800">{pet.color}</p>
                 </div>
               )}
-              {pet.microchipId && (
-                <div className="col-span-2">
-                  <span className="text-sm font-semibold text-gray-500">Microchip ID</span>
-                  <p className="text-gray-800 font-mono text-sm">{pet.microchipId}</p>
-                </div>
-              )}
             </div>
 
             {/* Allergies Warning */}
@@ -208,6 +202,39 @@ const PetRecordsPage = ({ pet, onBack, viewOnly = false, isOwner = false, onEdit
                 </span>
               )}
             </div>
+            
+            {/* Remove Pet Button (Owner Only) */}
+            {isOwner && (
+              <button
+                onClick={async () => {
+                  if (window.confirm(`Are you sure you want to remove ${pet.name}? This action cannot be undone.`)) {
+                    try {
+                      const token = localStorage.getItem('token');
+                      const res = await fetch(`http://localhost:5001/pets/${pet._id}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                      });
+                      
+                      if (!res.ok) {
+                        const errorData = await res.json().catch(() => ({}));
+                        console.error('Delete error response:', res.status, errorData);
+                        throw new Error(errorData.error || 'Failed to delete pet');
+                      }
+                      
+                      alert(`${pet.name} has been removed successfully.`);
+                      onBack(); // Go back to My Pets page
+                    } catch (err) {
+                      console.error('Error deleting pet:', err);
+                      alert(`Failed to remove pet: ${err.message}`);
+                    }
+                  }
+                }}
+                className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold shadow-md hover:shadow-lg"
+              >
+                <Trash2 size={18} />
+                Remove Pet
+              </button>
+            )}
           </div>
         </div>
 

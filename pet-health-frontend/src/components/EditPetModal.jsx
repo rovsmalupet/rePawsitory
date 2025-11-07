@@ -12,7 +12,6 @@ const EditPetModal = ({ isOpen, onClose, onSave, pet }) => {
     weight: '',
     weightUnit: 'kg',
     color: '',
-    microchipId: '',
     photoUrl: '',
     allergies: '',
     chronicConditions: '',
@@ -37,7 +36,6 @@ const EditPetModal = ({ isOpen, onClose, onSave, pet }) => {
         weight: pet.weight?.value || '',
         weightUnit: pet.weight?.unit || 'kg',
         color: pet.color || '',
-        microchipId: pet.microchipId || '',
         photoUrl: pet.photoUrl || '',
         allergies: Array.isArray(pet.allergies) ? pet.allergies.join(', ') : '',
         chronicConditions: Array.isArray(pet.chronicConditions) 
@@ -82,10 +80,10 @@ const EditPetModal = ({ isOpen, onClose, onSave, pet }) => {
 
       try {
         const formDataUpload = new FormData();
-        formDataUpload.append('photo', file);
+        formDataUpload.append('image', file);
 
         const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:5001/api/upload/pet-photo', {
+        const response = await fetch('http://localhost:5001/api/upload/pet-image', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -98,9 +96,9 @@ const EditPetModal = ({ isOpen, onClose, onSave, pet }) => {
         const data = await response.json();
         setFormData(prev => ({
           ...prev,
-          photoUrl: data.fileUrl
+          photoUrl: data.imageUrl
         }));
-        setImagePreview(`http://localhost:5001${data.fileUrl}`);
+        setImagePreview(`http://localhost:5001${data.imageUrl}`);
         setErrors(prev => ({ ...prev, image: '' }));
       } catch (error) {
         console.error('Error uploading image:', error);
@@ -146,7 +144,6 @@ const EditPetModal = ({ isOpen, onClose, onSave, pet }) => {
           unit: formData.weightUnit
         } : undefined,
         color: formData.color.trim() || undefined,
-        microchipId: formData.microchipId.trim() || undefined,
         photoUrl: formData.photoUrl || undefined,
         allergies: formData.allergies ? formData.allergies.split(',').map(a => a.trim()).filter(Boolean) : [],
         chronicConditions: formData.chronicConditions 
@@ -193,7 +190,6 @@ const EditPetModal = ({ isOpen, onClose, onSave, pet }) => {
       weight: '',
       weightUnit: 'kg',
       color: '',
-      microchipId: '',
       photoUrl: '',
       allergies: '',
       chronicConditions: '',
@@ -344,18 +340,6 @@ const EditPetModal = ({ isOpen, onClose, onSave, pet }) => {
                     <option value="lbs">lbs</option>
                   </select>
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Microchip ID</label>
-                <input
-                  type="text"
-                  name="microchipId"
-                  value={formData.microchipId}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g., 123456789012345"
-                />
               </div>
             </div>
           </div>

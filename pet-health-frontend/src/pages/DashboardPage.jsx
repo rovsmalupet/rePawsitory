@@ -209,43 +209,6 @@ const DashboardPage = ({ userRole, pets, recentRecords, petsLoading, petsError, 
         onClose={() => setViewingRecord(null)}
         record={viewingRecord}
       />
-
-      {/* Quick Actions and Reminders - Only for Owners */}
-      {userRole === 'owner' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Quick Actions</h3>
-            <div className="space-y-2">
-              <button className="w-full text-left px-4 py-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors">
-                + Add Medical Record
-              </button>
-              <button className="w-full text-left px-4 py-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors">
-                🔗 Share Pet Records
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Upcoming Reminders</h3>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
-                <Bell size={20} className="text-yellow-600" />
-                <div>
-                  <p className="font-semibold text-gray-800">Max - Deworming Due</p>
-                  <p className="text-sm text-gray-600">Due in 3 days</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
-                <Bell size={20} className="text-yellow-600" />
-                <div>
-                  <p className="font-semibold text-gray-800">Luna - Annual Checkup</p>
-                  <p className="text-sm text-gray-600">Due in 1 week</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

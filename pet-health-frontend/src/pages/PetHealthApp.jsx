@@ -63,6 +63,7 @@ const PetHealthApp = () => {
             petsLoading={loading}
             petsError={error}
             addPet={addPet}
+            refetchPets={refetchPets}
             patients={patients}
             patientsLoading={patientsLoading}
             patientsError={patientsError}
