@@ -8,6 +8,11 @@ const DashboardPage = ({ userRole, pets, recentRecords, petsLoading, petsError, 
   const [recentActivity, setRecentActivity] = useState([]);
   const [loadingActivity, setLoadingActivity] = useState(true);
   const [viewingRecord, setViewingRecord] = useState(null);
+  const [totalRecordsCount, setTotalRecordsCount] = useState(0);
+  const [sharedVetsCount, setSharedVetsCount] = useState(0);
+  const [loadingSharedVets, setLoadingSharedVets] = useState(true);
+  const [activePatientsCount, setActivePatientsCount] = useState(0);
+  const [loadingPatients, setLoadingPatients] = useState(true);
 
   useEffect(() => {
     const checkProfileCompletion = async () => {
@@ -40,10 +45,10 @@ const DashboardPage = ({ userRole, pets, recentRecords, petsLoading, petsError, 
     checkProfileCompletion();
   }, []);
 
-  // Fetch recent medical records
+  // Fetch recent medical records and count for pet owners
   useEffect(() => {
     const fetchRecentActivity = async () => {
-      if (!pets || pets.length === 0) {
+      if (userRole !== 'owner' || !pets || pets.length === 0) {
         setLoadingActivity(false);
         return;
       }
@@ -59,8 +64,10 @@ const DashboardPage = ({ userRole, pets, recentRecords, petsLoading, petsError, 
         );
         
         const results = await Promise.all(recordsPromises);
-        const combined = results.flat().sort((a, b) => new Date(b.date) - new Date(a.date));
-        // Get only the 3 most recent
+        const combined = results.flat().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        // Set the total count of all records
+        setTotalRecordsCount(combined.length);
+        // Get only the 3 most recently created records
         setRecentActivity(combined.slice(0, 3));
       } catch (error) {
         console.error('Error fetching recent activity:', error);
@@ -71,7 +78,141 @@ const DashboardPage = ({ userRole, pets, recentRecords, petsLoading, petsError, 
     };
 
     fetchRecentActivity();
-  }, [pets]);
+  }, [pets, userRole]);
+
+  // Fetch records created by veterinarian
+  useEffect(() => {
+    const fetchVetRecords = async () => {
+      if (userRole !== 'vet') {
+        return;
+      }
+
+      setLoadingActivity(true);
+      try {
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const userId = user._id || user.id;
+        
+        console.log('Logged in user:', user);
+        console.log('User ID:', userId);
+        
+        // Fetch all patients
+        const patientsResponse = await fetch('http://localhost:5001/api/vet/patients', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (patientsResponse.ok) {
+          const patients = await patientsResponse.json();
+          
+          // Fetch medical records for all patients
+          const recordsPromises = patients.map(pet =>
+            fetch(`http://localhost:5001/api/pets/${pet._id}/medical-records`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            }).then(res => res.ok ? res.json() : [])
+              .then(records => records.map(r => ({ ...r, petName: pet.name, petId: pet._id })))
+          );
+          
+          const results = await Promise.all(recordsPromises);
+          const allRecords = results.flat();
+          
+          console.log('All records:', allRecords);
+          console.log('Current user ID:', userId);
+          
+          // Filter records created by this vet
+          // Handle both cases: createdBy as ObjectId string or as populated object
+          const myRecords = allRecords.filter(record => {
+            const createdById = typeof record.createdBy === 'object' ? record.createdBy?._id : record.createdBy;
+            const veterinarianId = typeof record.veterinarian === 'object' ? record.veterinarian?._id : record.veterinarian;
+            
+            return createdById === userId || veterinarianId === userId;
+          });
+          
+          console.log('My records:', myRecords);
+          
+          // Set the count of records created by this vet
+          setTotalRecordsCount(myRecords.length);
+          
+          // Get only the 3 most recently CREATED records (not by procedure date)
+          const sortedRecords = myRecords.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          setRecentActivity(sortedRecords.slice(0, 3));
+        }
+      } catch (error) {
+        console.error('Error fetching vet records:', error);
+        setRecentActivity([]);
+        setTotalRecordsCount(0);
+      } finally {
+        setLoadingActivity(false);
+      }
+    };
+
+    fetchVetRecords();
+  }, [userRole]);
+
+  // Fetch shared vets count for pet owners
+  useEffect(() => {
+    const fetchSharedVetsCount = async () => {
+      if (userRole !== 'owner') {
+        setLoadingSharedVets(false);
+        return;
+      }
+
+      setLoadingSharedVets(true);
+      try {
+        const token = localStorage.getItem('token');
+        // Fetch all access grants made by the current user
+        const response = await fetch('http://localhost:5001/api/pet-access/my-grants', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          const grants = await response.json();
+          // Count unique veterinarians
+          setSharedVetsCount(grants.length);
+        } else {
+          setSharedVetsCount(0);
+        }
+      } catch (error) {
+        console.error('Error fetching shared vets count:', error);
+        setSharedVetsCount(0);
+      } finally {
+        setLoadingSharedVets(false);
+      }
+    };
+
+    fetchSharedVetsCount();
+  }, [userRole]);
+
+  // Fetch active patients count for veterinarians
+  useEffect(() => {
+    const fetchActivePatientsCount = async () => {
+      if (userRole !== 'vet') {
+        setLoadingPatients(false);
+        return;
+      }
+
+      setLoadingPatients(true);
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:5001/api/vet/patients', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          const patients = await response.json();
+          setActivePatientsCount(patients.length);
+        } else {
+          setActivePatientsCount(0);
+        }
+      } catch (error) {
+        console.error('Error fetching active patients count:', error);
+        setActivePatientsCount(0);
+      } finally {
+        setLoadingPatients(false);
+      }
+    };
+
+    fetchActivePatientsCount();
+  }, [userRole]);
 
   const formatDate = (date) => {
     if (!date) return 'N/A';
@@ -144,8 +285,16 @@ const DashboardPage = ({ userRole, pets, recentRecords, petsLoading, petsError, 
         <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-xl shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-100 text-sm">Medical Records</p>
-              <p className="text-3xl font-bold mt-1">24</p>
+              <p className="text-green-100 text-sm">
+                {userRole === 'owner' ? 'Medical Records' : 'Total Records Created'}
+              </p>
+              <p className="text-3xl font-bold mt-1">
+                {loadingActivity ? (
+                  <span className="text-lg">Loading...</span>
+                ) : (
+                  totalRecordsCount
+                )}
+              </p>
             </div>
             <FileText size={40} className="opacity-80" />
           </div>
@@ -157,7 +306,21 @@ const DashboardPage = ({ userRole, pets, recentRecords, petsLoading, petsError, 
               <p className="text-purple-100 text-sm">
                 {userRole === 'owner' ? 'Shared With Vets' : 'Active Patients'}
               </p>
-              <p className="text-3xl font-bold mt-1">{userRole === 'owner' ? '2' : '12'}</p>
+              <p className="text-3xl font-bold mt-1">
+                {userRole === 'owner' ? (
+                  loadingSharedVets ? (
+                    <span className="text-lg">Loading...</span>
+                  ) : (
+                    sharedVetsCount
+                  )
+                ) : (
+                  loadingPatients ? (
+                    <span className="text-lg">Loading...</span>
+                  ) : (
+                    activePatientsCount
+                  )
+                )}
+              </p>
             </div>
             <Users size={40} className="opacity-80" />
           </div>

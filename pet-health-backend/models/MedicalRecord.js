@@ -80,13 +80,6 @@ const medicalRecordSchema = new mongoose.Schema({
       message: 'At least one file attachment (PDF or image) is required'
     }
   },
-  // Cost tracking
-  cost: {
-    amount: Number,
-    currency: { type: String, default: 'USD' },
-    paid: { type: Boolean, default: false },
-    paymentDate: Date
-  },
   // Creator tracking
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,

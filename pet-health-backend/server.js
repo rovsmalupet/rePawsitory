@@ -222,11 +222,6 @@ app.post('/api/medical-records', auth, async (req, res) => {
       notes: data.notes || '',
       // attachments must follow { filename, fileUrl, fileType }
       attachments: attachments.map(a => ({ filename: a.filename, fileUrl: a.fileUrl, fileType: a.fileType })),
-      cost: {
-        amount: data.cost || 0,
-        currency: 'USD',
-        paid: false
-      },
       createdBy: user._id,
       updatedBy: user._id
     });
@@ -259,9 +254,6 @@ app.put('/api/medical-records/:id', auth, async (req, res) => {
     if (updates.notes !== undefined) existing.notes = updates.notes;
     if (updates.attachments !== undefined && Array.isArray(updates.attachments) && updates.attachments.length > 0) {
       existing.attachments = updates.attachments.map(a => ({ filename: a.filename, fileUrl: a.fileUrl, fileType: a.fileType }));
-    }
-    if (updates.cost !== undefined) {
-      existing.cost = { amount: updates.cost || 0, currency: (existing.cost && existing.cost.currency) || 'USD', paid: false };
     }
     existing.updatedBy = user._id;
     existing.updatedAt = new Date();
