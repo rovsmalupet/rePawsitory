@@ -19,13 +19,24 @@ export const useNavigation = () => {
   const vetNavItems = [
     { id: 'dashboard', icon: Home, label: 'Dashboard' },
     { id: 'patients', icon: Users, label: 'My Patients' },
-    { id: 'appointments', icon: Calendar, label: 'Appointments' },
     { id: 'settings', icon: Settings, label: 'Settings' }
   ];
 
   const navItems = userRole === 'owner' ? ownerNavItems : vetNavItems;
 
   const login = (role) => {
+    console.log('Login called with role:', role); // Add debug logging
+    if (role !== 'owner' && role !== 'vet') {
+      console.error('Invalid role:', role);
+      return;
+    }
+    setUserRole(role);
+    setIsAuthenticated(true);
+    setCurrentPage('dashboard');
+  };
+
+  const signup = (role) => {
+    // In a real app, call backend to create account then set auth
     if (role !== 'owner' && role !== 'vet') return;
     setUserRole(role);
     setIsAuthenticated(true);
@@ -33,9 +44,17 @@ export const useNavigation = () => {
   };
 
   const logout = () => {
+    // Clear authentication state
     setIsAuthenticated(false);
     setUserRole(null);
     setCurrentPage('dashboard');
+    
+    // Clear localStorage
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    
+    // Force a page reload to clear all state
+    window.location.reload();
   };
 
   return {
@@ -48,6 +67,7 @@ export const useNavigation = () => {
     navItems,
     isAuthenticated,
     login,
+    signup,
     logout
   };
 };
