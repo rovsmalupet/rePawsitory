@@ -1,6 +1,19 @@
 import React from 'react';
 import { X, Download, Calendar, FileText } from 'lucide-react';
 
+const getFileTypeDescription = (filename) => {
+  if (!filename) return 'File';
+  const extension = filename.split('.').pop().toLowerCase();
+  switch (extension) {
+    case 'pdf':
+      return 'PDF Document';
+    case 'png':
+      return 'PNG Image';
+    default:
+      return `${extension.toUpperCase()} File`;
+  }
+};
+
 const ViewRecordModal = ({ isOpen, onClose, record }) => {
   if (!isOpen || !record) return null;
 
@@ -193,7 +206,9 @@ const ViewRecordModal = ({ isOpen, onClose, record }) => {
                         <p className="font-medium text-gray-800">
                           {attachment.filename || attachment.fileUrl.split('/').pop()}
                         </p>
-                        <p className="text-xs text-gray-500">PDF Document</p>
+                        <p className="text-xs text-gray-500">
+                          {getFileTypeDescription(attachment.filename || attachment.fileUrl)}
+                        </p>
                       </div>
                     </div>
                     <button
