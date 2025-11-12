@@ -50,19 +50,6 @@ const userSchema = new mongoose.Schema({
     zipCode: String,
     country: String
   },
-  // Notification preferences
-  notifications: {
-    email: { type: Boolean, default: true },
-    push: { type: Boolean, default: true },
-    sms: { type: Boolean, default: false }
-  },
-  // Email verification
-  emailVerified: { type: Boolean, default: false },
-  emailVerificationToken: String,
-  emailVerificationExpires: Date,
-  // Password reset
-  resetPasswordToken: String,
-  resetPasswordExpires: Date,
   // Profile completion
   profileCompleted: { type: Boolean, default: false },
   // Timestamps
@@ -92,13 +79,6 @@ userSchema.pre('save', function(next) {
 // Method to compare password
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
-};
-
-// Method to generate password reset token
-userSchema.methods.generatePasswordResetToken = function() {
-  this.resetPasswordToken = crypto.randomBytes(20).toString('hex');
-  this.resetPasswordExpires = Date.now() + 3600000; // 1 hour
-  return this.resetPasswordToken;
 };
 
 // Method to check if profile is complete

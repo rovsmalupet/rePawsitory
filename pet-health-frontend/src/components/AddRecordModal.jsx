@@ -9,7 +9,6 @@ const AddRecordModal = ({ isOpen, onClose, onSave, petId, initialData }) => {
     date: '',
     veterinarian: '',
     notes: '',
-    cost: '',
     attachments: []
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,7 +27,6 @@ const AddRecordModal = ({ isOpen, onClose, onSave, petId, initialData }) => {
         date: initialData.date ? new Date(initialData.date).toISOString().slice(0,10) : '',
         veterinarian: initialData.veterinarian || vetName,
         notes: initialData.notes || '',
-        cost: initialData.cost || '',
         attachments: initialData.attachments || []
       });
     } else {
@@ -97,7 +95,6 @@ const AddRecordModal = ({ isOpen, onClose, onSave, petId, initialData }) => {
         date: formData.date,
         // Don't send veterinarian - backend automatically sets it to the authenticated user
         notes: formData.notes,
-        cost: parseFloat(formData.cost) || 0,
         attachments: formData.attachments || []
       };
 
@@ -175,31 +172,25 @@ const AddRecordModal = ({ isOpen, onClose, onSave, petId, initialData }) => {
               <textarea name="notes" value={formData.notes} onChange={handleChange} rows={4} className="w-full px-3 py-2 border rounded" />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-semibold text-gray-700 mb-1 block">Cost</label>
-                <input name="cost" value={formData.cost} onChange={handleChange} className="w-full px-3 py-2 border rounded" placeholder="0.00" />
+            <div>
+              <label className="text-sm font-semibold text-gray-700 mb-1 block">Attachments</label>
+              <div className="border-2 border-dashed rounded p-3">
+                <input key={fileInputKey} type="file" accept="application/pdf,image/*" multiple onChange={handleFileChange} className="hidden" id="record-files" />
+                <label htmlFor="record-files" className="cursor-pointer flex items-center gap-2 text-sm text-gray-600">
+                  <Upload size={18} />
+                  <span>{uploading ? 'Uploading...' : 'Click to upload (PDF, images) — multiple allowed'}</span>
+                </label>
               </div>
-              <div>
-                <label className="text-sm font-semibold text-gray-700 mb-1 block">Attachments</label>
-                <div className="border-2 border-dashed rounded p-3">
-                  <input key={fileInputKey} type="file" accept="application/pdf,image/*" multiple onChange={handleFileChange} className="hidden" id="record-files" />
-                  <label htmlFor="record-files" className="cursor-pointer flex items-center gap-2 text-sm text-gray-600">
-                    <Upload size={18} />
-                    <span>{uploading ? 'Uploading...' : 'Click to upload (PDF, images) — multiple allowed'}</span>
-                  </label>
-                </div>
-                <div className="mt-2 space-y-1">
-                  {(formData.attachments || []).map((att, idx) => (
-                    <div key={idx} className="flex items-center justify-between text-sm bg-gray-50 px-3 py-2 rounded">
-                      <div className="truncate">{att.filename || att.fileUrl}</div>
-                      <div className="flex gap-2">
-                        <a href={`http://localhost:5001${att.fileUrl}`} target="_blank" rel="noreferrer" className="text-blue-600">View</a>
-                        <button type="button" onClick={() => handleRemoveAttachment(idx)} className="text-red-600">Remove</button>
-                      </div>
+              <div className="mt-2 space-y-1">
+                {(formData.attachments || []).map((att, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-sm bg-gray-50 px-3 py-2 rounded">
+                    <div className="truncate">{att.filename || att.fileUrl}</div>
+                    <div className="flex gap-2">
+                      <a href={`http://localhost:5001${att.fileUrl}`} target="_blank" rel="noreferrer" className="text-blue-600">View</a>
+                      <button type="button" onClick={() => handleRemoveAttachment(idx)} className="text-red-600">Remove</button>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
             </div>
 

@@ -304,7 +304,7 @@ const SettingsPage = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">State</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Province</label>
                 <input
                   type="text"
                   name="address.state"
