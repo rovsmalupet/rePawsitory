@@ -90,3 +90,27 @@ The application is also deployed online:
 
 To stop: Press Ctrl+C in both windows.
 
+---------------------------------------------------------------------------
+
+## NPM Packages and Third-Party Libraries
+
+**Backend:**
+- express - Web framework for REST API
+- mongoose - MongoDB database connection
+- bcrypt - Password encryption
+- jsonwebtoken - User authentication
+- cors - Cross-origin requests
+- multer - File uploads
+
+**Frontend:**
+- react - UI library
+- react-dom - React for web
+- tailwindcss - CSS styling
+- lucide-react - Icons
+
+**External Services:**
+- MongoDB Atlas - Cloud database
+- Render - Backend hosting
+- Vercel - Frontend hosting
+
+

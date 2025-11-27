@@ -6,7 +6,6 @@ import { API_BASE_URL } from '../config';
 const AddRecordModal = ({ isOpen, onClose, onSave, petId, initialData }) => {
   const [formData, setFormData] = useState({
     type: 'checkup',
-    title: '',
     date: '',
     veterinarian: '',
     notes: '',
@@ -24,7 +23,6 @@ const AddRecordModal = ({ isOpen, onClose, onSave, petId, initialData }) => {
     if (initialData) {
       setFormData({
         type: initialData.type || 'checkup',
-        title: initialData.title || '',
         date: initialData.date ? new Date(initialData.date).toISOString().slice(0,10) : '',
         veterinarian: initialData.veterinarian || vetName,
         notes: initialData.notes || '',
@@ -92,7 +90,6 @@ const AddRecordModal = ({ isOpen, onClose, onSave, petId, initialData }) => {
       const payload = {
         pet: petId,
         type: formData.type,
-        title: formData.title,
         date: formData.date,
         // Don't send veterinarian - backend automatically sets it to the authenticated user
         notes: formData.notes,
@@ -163,10 +160,7 @@ const AddRecordModal = ({ isOpen, onClose, onSave, petId, initialData }) => {
               </div>
             </div>
 
-            <div>
-              <label className="text-sm font-semibold text-gray-700 mb-1 block">Title</label>
-              <input name="title" value={formData.title} onChange={handleChange} className="w-full px-3 py-2 border rounded" placeholder="Short title" />
-            </div>
+            {/* Title field removed as requested */}
 
             <div>
               <label className="text-sm font-semibold text-gray-700 mb-1 block">Notes</label>
