@@ -49,6 +49,7 @@ const AddPetModal = ({ isOpen, onClose, onSave }) => {
           ...prev,
           image: 'Please select an image file'
         }));
+        e.target.value = ''; // Reset input
         return;
       }
 
@@ -58,6 +59,7 @@ const AddPetModal = ({ isOpen, onClose, onSave }) => {
           ...prev,
           image: 'Image size must be less than 5MB'
         }));
+        e.target.value = ''; // Reset input
         return;
       }
 
@@ -106,6 +108,9 @@ const AddPetModal = ({ isOpen, onClose, onSave }) => {
           ...prev,
           image: 'Failed to upload image. Please try again.'
         }));
+      } finally {
+        // Reset file input so same file can be selected again
+        e.target.value = '';
       }
     }
   };
