@@ -20,7 +20,7 @@ What you need:
 **Backend API:**
 
 - Local: `http://localhost:5001`
-- Deployed (Render): `https://repawsitory.onrender.com`
+- Deployed (Render): `https://re-pawsitory.onrender.com`
 
 **Frontend:**
 
